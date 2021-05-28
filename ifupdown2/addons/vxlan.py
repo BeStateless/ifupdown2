@@ -97,12 +97,14 @@ class vxlan(Addon, moduleBase):
                 "help": "specifies the TTL value to use in outgoing packets "
                         "(range 0..255), 0=auto",
                 "default": "0",
-                "validvals": ["0", "255"],
+                "validvals": ["auto"],
+                "validrange": ["0", "255"],
                 "example": ['vxlan-ttl 42'],
             },
             "vxlan-tos": {
                 "help": "specifies the ToS value (range 0..255), 1=inherit",
-                "validvals": ["inherit", "0", "255"],
+                "validvals": ["inherit"],
+                "validrange": ["0", "255"],
                 "example": ['vxlan-tos 42'],
             },
             "vxlan-mcastgrp": {
@@ -235,13 +237,12 @@ class vxlan(Addon, moduleBase):
         return purge_remotes
 
     def get_vxlan_ttl_from_string(self, ttl_config):
-        ttl = 0
         if ttl_config:
             if ttl_config.lower() == "auto":
-                ttl = 0
+                return 0
             else:
-                ttl = int(ttl_config)
-        return ttl
+                return int(ttl_config)
+        return None
 
     def get_vxlan_tos_from_string(self, tos_config):
         if tos_config:

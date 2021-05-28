@@ -1240,37 +1240,43 @@ class ifupdownMain:
         return keyword_found
 
     def _check_validvals_value(self, attrname, value, validvals, validrange):
-        if validvals and value not in validvals:
-            is_valid = False
-            for keyword in validvals:
-                if self._is_keyword(keyword):
+        errors = []
+        if validvals:
+            if value in validvals:
+                # Our value is one of the specified validvals.  We're good.
+                return {'result': True}
+            else:
+                # It's not in the list, but let's check if we have a keyword.
+                for keyword in filter(self._is_keyword, validvals):
+                    # If we do, validate the value using the validator for that keyword
                     if validrange:
                         if self.validate_keywords[keyword](value, validrange):
                             return {'result': True}
                     else:
                         if self.validate_keywords[keyword](value):
                             return {'result': True}
-            if not is_valid:
-                return {
-                    'result': False,
-                    'message': 'invalid value "%s": valid attribute values: %s'
-                               % (value, validvals)
-                }
-        elif validvals and value in validvals:
-            pass
-        elif validrange:
+
+                # If we checked all keywords and didn't return, we didn't pass with validvals.  Save the error.
+                errors.append('valid attribute values: %s' % validvals)
+
+        if validrange:
+            # If we didn't return from validvals (either because there are no validvals
+            # or because we didn't pass there), move on to checking validrange.
             if len(validrange) != 2:
                 raise Exception('%s: invalid range in addon configuration'
                                 % '-'.join(validrange))
-            _value = int(value)
-            if _value < int(validrange[0]) or _value > int(validrange[1]):
-                return {
-                    'result': False,
-                    'message': 'value of out range "%s": '
-                               'valid attribute range: %s'
-                               % (value, '-'.join(validrange))
-                }
-        return {'result': True}
+            if int(validrange[0]) <= int(value) <= int(validrange[1]):
+                # Our value is in the range.  We're good.
+                return {'result': True}
+            else:
+                # It's not in the range, we didn't pass with validrange.  Save the error.
+                errors.append('valid attribute range: %s' % '-'.join(validrange))
+
+        # If we got here, either we have errors or we don't have any validvals or validrange.
+        if len(errors) > 0:
+            return {'result': False, 'message': 'invalid value %s: %s' % (value, ", ".join(errors))}
+        else:
+            return {'result': True}
 
     def _check_validvals(self, ifacename, module_name, attrs):
         ifaceobj = self.get_ifaceobjs(ifacename)
